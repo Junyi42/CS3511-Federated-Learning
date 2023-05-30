@@ -1,0 +1,7 @@
+[2023-05-30 21:01:29] Namespace(num_clients=5, num_rounds=10, num_epochs=5, send_port=12373, receive_port=12374)
+[2023-05-30 21:02:40] Round 1 acc: 0.4639
+[2023-05-30 21:03:52] Round 2 acc: 0.8906
+[2023-05-30 21:05:05] Round 3 acc: 0.9209
+[2023-05-30 21:06:20] Round 4 acc: 0.9335
+[2023-05-30 21:07:35] Round 5 acc: 0.9330
+[2023-05-30 21:08:47] Round 6 acc: 0.9144

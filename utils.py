@@ -38,9 +38,8 @@ def train(model, dataloader, num_epochs, lr):
     for e in range(num_epochs):
         for features, labels in dataloader:
             optimizer.zero_grad()
-            one_hot_labels = F.one_hot(labels, 10).float()
             probs = model(features)
-            loss = criterion(probs, one_hot_labels)
+            loss = criterion(probs, labels)
             loss.backward()
             # update model parameters
             optimizer.step()

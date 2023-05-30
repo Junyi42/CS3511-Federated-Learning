@@ -93,7 +93,9 @@ def training(num_rounds, num_epochs, mode='all', M=20):
         if mode == 'all':
             idx = [i for i in range(len(dataloader_client))]
         else:  # mode == 'partial'
-            idx = np.random.choice(len(dataloader_client), M, replace=False)
+            # idx = np.random.choice(len(dataloader_client), M, replace=False)
+            # the first M clients
+            idx = [i for i in range(M)]
 
         for i in tqdm(idx):  # For each client
             local_model = MLP().to(device)
