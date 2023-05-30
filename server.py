@@ -29,6 +29,11 @@ parser.add_argument("receive_port", type=int, help="The port which client receiv
 args = parser.parse_args()
 # 全局模型
 global_model = MLP()
+
+# zero the parameter of global model
+for param in global_model.parameters():
+    param.data = torch.zeros_like(param.data)
+
 # 定义客户端数量
 num_clients = args.num_clients
 num_rounds = args.num_rounds

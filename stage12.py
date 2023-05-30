@@ -60,32 +60,6 @@ def load_data():
     )
     return train_datasets, DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-def client_update(client_model, optimizer, train_loader, epoch):
-    """
-    This function updates/trains the model
-    on the client side.
-    """
-    client_model.train()
-    for e in range(epoch):
-        for batch_idx, (data, target) in enumerate(train_loader):
-            data, target = data.to(device), target.to(device)
-            optimizer.zero_grad()
-            output = client_model(data)
-            loss = F.nll_loss(output, target)
-            loss.backward()
-            optimizer.step()
-
-def average_models(global_model, clients_model):
-    """
-    This function averages the models of the clients and updates the global model.
-    """
-    global_dict = global_model.state_dict()
-    client_state_dicts = [model.state_dict() for model in clients_model]
-    for k in global_dict.keys():
-        global_dict[k] = torch.stack([client_model[k].float() for client_model in client_state_dicts], 0).mean(dim=0)
-    global_model.load_state_dict(global_dict)
-
-
 def test(global_model, test_loader):
     """
     This function tests the global model on test data and returns test loss and accuracy.
@@ -154,10 +128,13 @@ def training(num_rounds, num_epochs, mode='all', M=20):
             client_model = MLP().to(device)
             client_model.load_state_dict(torch.load(client_model_path))
             for avg_param, client_param in zip(avg_model.parameters(), client_model.parameters()):
-                avg_param.data += client_param.data
+                if i == idx[0]:
+                    avg_param.data = client_param.data
+                else:
+                    avg_param.data += client_param.data
 
         for avg_param in avg_model.parameters():
-            avg_param.data /= len(dataloader_client)
+            avg_param.data /= len(idx)
 
         # Update global model parameters
         global_model.load_state_dict(avg_model.state_dict())
