@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, DataLoader
 #load data
 train_dataset_clients = []
 for i in range(20):
-    with open("./Client"+str(i+1)+".pkl",'rb') as f:
+    with open("./private_data/Client"+str(i+1)+".pkl",'rb') as f:
         train_dataset_clients.append( dill.load(f))
 
 

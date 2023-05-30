@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # Load the dataset
     batch_size = 32
     transform = transforms.ToTensor()
-    with open("./Client"+str(int(args.client_id)+1)+".pkl",'rb') as f:
+    with open("./private_data/Client"+str(int(args.client_id)+1)+".pkl",'rb') as f:
         train_dataset=dill.load(f)
     # train_dataset = torchvision.datasets.MNIST('./data', train=True, download=True, transform=transform)
     dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
