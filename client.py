@@ -1,13 +1,16 @@
 import socket
 import torch
 import argparse
-from utils import MLP, train, test  # Replace with your model and functions
+from utils import MLP  # Replace with your model and functions
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import torchvision
 import io
 import time
 import dill
+import utils
+
+dataloader_client = utils.load_client_dataset(batch_size=32)
 
 def federated_train_and_send(client_id, num_rounds, num_epochs, lr, dataloader, server_ip, receive_port, send_port):
     # Initialize the model
@@ -25,7 +28,8 @@ def federated_train_and_send(client_id, num_rounds, num_epochs, lr, dataloader, 
                 break
 
         # Train the model for num_epochs
-        train(model, dataloader, num_epochs, lr)
+        utils.train_local_model(dataloader_client[client_id],model.state_dict(), num_epochs, lr,10)
+        
         print("Client {} finished training round {}.".format(client_id+1, r+1))
         # Send the model parameters to the server
         send_params_to_server(model, server_ip, send_port)

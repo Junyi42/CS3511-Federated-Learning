@@ -1,7 +1,7 @@
 import socket
 import torch
 import io
-from utils import MLP, test
+from utils import MLP
 import numpy as np
 import torchvision
 from torchvision import transforms
@@ -10,6 +10,7 @@ import argparse
 from loguru import logger
 import os
 import sys
+import utils
 
 def get_logger(output_file):
     log_format = "[<green>{time:YYYY-MM-DD HH:mm:ss}</green>] {message}"
@@ -37,33 +38,8 @@ num_epochs = args.num_epochs
 logger = get_logger(f'./log_file/result_{num_clients}_{num_rounds}_{num_epochs}.log')
 logger.info(args)
 
-def handle_client(connection):
-    try:
-        # 接收数据
-        data = b''
-        while True:
-            packet = connection.recv(4096)
-            if not packet: 
-                break
-            data += packet
-
-        # 从二进制数据中加载模型参数
-        buffer = io.BytesIO(data)
-        buffer.seek(0)
-        params = torch.load(buffer)
-
-        # 载入模型参数
-        model = MLP()
-        model.load_state_dict(params)
-
-        # 聚合模型参数
-        for param_global, param_client in zip(global_model.parameters(), model.parameters()):
-            param_global.data += param_client.data
-    finally:
-        # 清理连接
-        connection.close()
-
 def receive_models():
+    local_params = []
     # 创建一个TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # 绑定socket到端口
@@ -78,10 +54,27 @@ def receive_models():
         connection, client_address = sock.accept()
         print('connection from', client_address)
 
-        # 处理连接
-        handle_client(connection)
+        try:
+            # 接收数据
+            data = b''
+            while True:
+                packet = connection.recv(4096)
+                if not packet: 
+                    break
+                data += packet
+
+            # 从二进制数据中加载模型参数
+            buffer = io.BytesIO(data)
+            buffer.seek(0)
+            params = torch.load(buffer)
+            local_params.append(params)
+        finally:
+            # 清理连接
+            connection.close()
+            
     # 关闭socket
     sock.close()
+    return local_params
 
 def send_models():
     # 创建一个TCP/IP socket
@@ -114,22 +107,16 @@ for idx in range(num_rounds):
     connected_clients = 0
 
     # Receive models
-    receive_models()
+    local_params = receive_models()
 
     # 计算平均模型参数
-    for param_global in global_model.parameters():
-        param_global.data /= num_clients
-
-    # load test data
-    test_dataset = torchvision.datasets.MNIST(
-            './data', train=False, download=True, 
-            transform=transforms.ToTensor()
-        )
-
-    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    global_params = utils.agggregate_local_models(local_params)
+    
+    global_model.load_state_dict(global_params)
+    test_loader = utils.load_test_dataset(batch_size=100)
 
     # test the global model
-    acc=test(global_model, test_loader)
+    acc=utils.test_global_model(global_model, test_loader)
     logger.info(f'Round {idx+1} acc: {acc:.4f}')
 
     # Send models
