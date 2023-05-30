@@ -69,6 +69,7 @@ def handle_client(connection):
 def receive_models():
     # 创建一个TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     # 绑定socket到端口
     server_address = ('localhost', args.receive_port)
     print('starting up on {} port {}'.format(*server_address))
@@ -89,9 +90,10 @@ def receive_models():
 def send_models():
     # 创建一个TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     # 绑定socket到端口
     server_address = ('localhost', args.send_port)
-    print('starting up on {} port {}'.format(*server_address))
+    print('starting up on {} port {} to send model'.format(*server_address))
     sock.bind(server_address)
     # 监听连接
     sock.listen(num_clients)

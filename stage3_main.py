@@ -13,8 +13,8 @@ if __name__ == "__main__":
     parser.add_argument("--num_rounds", type=int, default=10, help="The number of training rounds.")
     parser.add_argument("--num_epochs", type=int, default=5, help="The number of epochs for each training round.")
     parser.add_argument("--lr", type=float, default=0.01, help="Learning rate for SGD optimizer.")
-    parser.add_argument("--receive_port", type=int, default=12367, help="The port to receive data from the server.")
-    parser.add_argument("--send_port", type=int, default=12368, help="The port to send data to the server.")
+    parser.add_argument("--receive_port", type=int, default=12371, help="The port to receive data from the server.")
+    parser.add_argument("--send_port", type=int, default=12372, help="The port to send data to the server.")
     args = parser.parse_args()
     
     # Start the server
