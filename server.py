@@ -34,7 +34,7 @@ num_clients = args.num_clients
 num_rounds = args.num_rounds
 num_epochs = args.num_epochs
 
-logger = get_logger(f'./result_{num_clients}_{num_rounds}_{num_epochs}.log')
+logger = get_logger(f'./log_file/result_{num_clients}_{num_rounds}_{num_epochs}.log')
 logger.info(args)
 
 def handle_client(connection):
