@@ -41,6 +41,7 @@ num_epochs = args.num_epochs
 # set seed for reproducibility
 torch.manual_seed(0)
 torch.backends.cudnn.deterministic = True
+np.random.seed(0)
 
 logger = get_logger(f'./log_file/result_{num_clients}_{num_rounds}_{num_epochs}.log')
 logger.info(args)
@@ -92,7 +93,7 @@ def receive_models():
     # 关闭socket
     sock.close()
 
-def send_models():
+def send_models(client_id):
     # 创建一个TCP/IP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -102,7 +103,7 @@ def send_models():
     sock.bind(server_address)
     # 监听连接
     sock.listen(num_clients)
-    for _ in range(num_clients):
+    for idx in range(num_clients):
         # 等待连接
         print('waiting for a connection for send global model')
         connection, client_address = sock.accept()
@@ -110,7 +111,11 @@ def send_models():
 
         # 将全局模型参数发送给客户端
         buffer = io.BytesIO()
-        torch.save(global_model.state_dict(), buffer)
+        model_params = {
+            'client_id': client_id[idx], # assign client id
+            'model_state_dict': global_model.state_dict()
+        }
+        torch.save(model_params, buffer)
         buffer.seek(0)
         connection.sendall(buffer.getvalue())
 
@@ -142,5 +147,10 @@ for idx in range(num_rounds):
     acc=test(global_model, test_loader)
     logger.info(f'Round {idx+1} acc: {acc:.4f}')
 
+    if num_clients!=20:
+        client_id = np.random.choice(20, num_clients, replace=False)
+    else:
+        client_id = np.arange(20)
+
     # Send models
-    send_models()
+    send_models(client_id)

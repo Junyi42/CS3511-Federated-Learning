@@ -9,7 +9,7 @@ import io
 import time
 import dill
 
-def federated_train_and_send(client_id, num_rounds, num_epochs, lr, dataloader, server_ip, receive_port, send_port):
+def federated_train_and_send(client_id, num_rounds, num_epochs, lr, server_ip, receive_port, send_port):
     # Initialize the model
     model = MLP()
     print("Client {} initialized the model.".format(client_id+1))
@@ -17,12 +17,17 @@ def federated_train_and_send(client_id, num_rounds, num_epochs, lr, dataloader, 
         # Load the global model parameters
         global_params = None
         if r > 0:
-            global_params = receive_global_params(server_ip, receive_port)
+            client_id, global_params = receive_global_params(server_ip, receive_port)
             model.load_state_dict(global_params)
             print("Client {} received global model parameters.".format(client_id+1))
 
             if r == num_rounds:
                 break
+
+        with open("./private_data/Client"+str(int(client_id)+1)+".pkl",'rb') as f:
+            train_dataset=dill.load(f)
+        # train_dataset = torchvision.datasets.MNIST('./data', train=True, download=True, transform=transform)
+        dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
         # Train the model for num_epochs
         train(model, dataloader, num_epochs, lr)
@@ -62,9 +67,11 @@ def receive_global_params(server_ip, server_port):
         params_bytes += packet
     buffer = io.BytesIO(params_bytes)
     buffer.seek(0)
-    params = torch.load(buffer)
+    model_params = torch.load(buffer)
     s.close()
-    return params
+    client_id = model_params['client_id']
+    params = model_params['model_state_dict']
+    return client_id, params
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -83,11 +90,7 @@ if __name__ == "__main__":
     # Load the dataset
     batch_size = 32
     transform = transforms.ToTensor()
-    with open("./private_data/Client"+str(int(args.client_id)+1)+".pkl",'rb') as f:
-        train_dataset=dill.load(f)
-    # train_dataset = torchvision.datasets.MNIST('./data', train=True, download=True, transform=transform)
-    dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
     server_ip = "localhost"  # Replace with your server IP
 
-    federated_train_and_send(int(args.client_id), int(args.num_rounds), int(args.num_epochs), float(args.lr), dataloader, server_ip, int(args.receive_port), int(args.send_port))
+    federated_train_and_send(int(args.client_id), int(args.num_rounds), int(args.num_epochs), float(args.lr), server_ip, int(args.receive_port), int(args.send_port))

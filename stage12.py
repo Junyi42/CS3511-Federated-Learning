@@ -93,9 +93,7 @@ def training(num_rounds, num_epochs, mode='all', M=20):
         if mode == 'all':
             idx = [i for i in range(len(dataloader_client))]
         else:  # mode == 'partial'
-            # idx = np.random.choice(len(dataloader_client), M, replace=False)
-            # the first M clients
-            idx = [i for i in range(M)]
+            idx = np.random.choice(len(dataloader_client), M, replace=False)
 
         for i in tqdm(idx):  # For each client
             local_model = MLP().to(device)
@@ -136,7 +134,7 @@ def training(num_rounds, num_epochs, mode='all', M=20):
                     avg_param.data += client_param.data
 
         for avg_param in avg_model.parameters():
-            avg_param.data /= len(idx)
+            avg_param.data /= M
 
         # Update global model parameters
         global_model.load_state_dict(avg_model.state_dict())

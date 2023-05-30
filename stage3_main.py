@@ -2,6 +2,7 @@ import argparse
 import multiprocessing
 import os
 import subprocess
+import numpy as np
 
 def start_client(client_id, num_rounds, num_epochs, lr, receive_port, send_port):
     # This function starts a client process.
@@ -13,15 +14,18 @@ if __name__ == "__main__":
     parser.add_argument("--num_rounds", type=int, default=10, help="The number of training rounds.")
     parser.add_argument("--num_epochs", type=int, default=5, help="The number of epochs for each training round.")
     parser.add_argument("--lr", type=float, default=0.01, help="Learning rate for SGD optimizer.")
-    parser.add_argument("--receive_port", type=int, default=12373, help="The port to receive data from the server.")
-    parser.add_argument("--send_port", type=int, default=12374, help="The port to send data to the server.")
+    parser.add_argument("--receive_port", type=int, default=12377, help="The port to receive data from the server.")
+    parser.add_argument("--send_port", type=int, default=12378, help="The port to send data to the server.")
     args = parser.parse_args()
-    
+
+    # set seed
+    np.random.seed(0)
+
     # Start the server
     server_process = subprocess.Popen(["python", "server.py", str(args.num_clients), str(args.num_rounds), str(args.num_epochs), str(args.receive_port), str(args.send_port)])
 
     # Start all the clients
-    for client_id in range(args.num_clients):
+    for client_id in np.random.choice(20, args.num_clients, replace=False):
         # Start a client in a new process
         process = multiprocessing.Process(target=start_client, args=(client_id, args.num_rounds, args.num_epochs, args.lr, args.receive_port, args.send_port))
         process.start()
