@@ -76,6 +76,10 @@ if __name__ == "__main__":
     parser.add_argument("send_port", help="The port of the server for sending local model.")
     args = parser.parse_args()
 
+    # set seed for reproducibility
+    torch.manual_seed(0)
+    torch.backends.cudnn.deterministic = True
+
     # Load the dataset
     batch_size = 32
     transform = transforms.ToTensor()

@@ -33,6 +33,9 @@ global_model = MLP()
 num_clients = args.num_clients
 num_rounds = args.num_rounds
 num_epochs = args.num_epochs
+# set seed for reproducibility
+torch.manual_seed(0)
+torch.backends.cudnn.deterministic = True
 
 logger = get_logger(f'./log_file/result_{num_clients}_{num_rounds}_{num_epochs}.log')
 logger.info(args)

@@ -173,6 +173,11 @@ def training(num_rounds, num_epochs, mode='all', M=20):
 
 
 def main():
+    # set seed for reproducibility
+    torch.manual_seed(0)
+    np.random.seed(0)
+    torch.backends.cudnn.deterministic = True
+    
     # Stage 1: All clients participate in each round of updates
     logger.info("Stage 1: Training with all clients")
     training(num_rounds, num_epochs[1], mode[0], num_clients)
