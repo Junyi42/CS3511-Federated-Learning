@@ -7,8 +7,10 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision
 from torchvision import transforms
-
-
+import io
+import numpy as np
+import time
+import subprocess
 class MLP(nn.Module):
     def __init__(self):
         super(MLP, self).__init__()
@@ -26,7 +28,97 @@ class MLP(nn.Module):
         x = self.relu(x)
         x = self.fc3(x)
         return x
+    
+def start_client(receive_port, send_port, num_rounds, num_epochs,client_id, lr,):
+    subprocess.run(["python", "client.py",str(receive_port), str(send_port),  str(num_rounds), str(num_epochs), str(client_id),str(lr)])
+    
+def receive_models(num_clients,receive_port):
+    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_address = ('localhost', receive_port)
+    print('starting up on {} port {}'.format(*server_address))
+    soc.bind(server_address)
+    soc.listen(num_clients)
+    local_params = []
+    for i in range(num_clients):
+        connection, client_address = soc.accept()
+        print( client_address, 'connected')
+        data = b''
+        while 1:
+            received_data = connection.recv(1024)
+            if not received_data: 
+                break
+            data += received_data
+            
+        buffer = io.BytesIO(data)
+        buffer.seek(0)
+        params = torch.load(buffer)
+        connection.close()
+        local_params.append(params)
+    
+    soc.close()
+    return local_params
 
+def send_models(num_clients,send_port,global_params):
+   
+    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    
+    server_address = ('localhost', send_port)
+    print('Server started on {} with port{}'.format(*server_address))
+    soc.bind(server_address)
+    soc.listen(num_clients)
+    for i in range(num_clients):
+        connection, client_address = soc.accept()
+        print('Client', client_address,' connected')
+        # Send global model to the client
+        buffer = io.BytesIO()
+        torch.save(global_params, buffer)
+        buffer.seek(0)
+        connection.sendall(buffer.getvalue())
+        connection.close()
+    soc.close()
+
+def receive(server_ip, server_port): #Clients receive data from server
+    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    while 1:
+        try:
+            #print(" server_ip:",server_ip," sever_port:",server_port)
+            soc.connect((server_ip, server_port))
+            break
+        except ConnectionRefusedError:
+            print("Connection refused.")
+            time.sleep(1)
+    params_bytes = b''
+    while 1:
+        received_data = soc.recv(1024)
+        if not received_data:
+            break
+        params_bytes += received_data
+    buffer = io.BytesIO(params_bytes)
+    buffer.seek(0)
+    params = torch.load(buffer)
+    soc.close()
+    return params
+
+def send(data,server_ip, send_port): #Clients send data to server
+    # Send local params to server
+    soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    while 1:
+        try:
+            soc.connect((server_ip, send_port))
+            break
+        except ConnectionRefusedError:
+            print("Connection refused.")
+            time.sleep(1)
+    buf = io.BytesIO()
+    torch.save(data, buf)
+    buf.seek(0)
+    soc.sendall(buf.getvalue())
+    soc.close()
+    
 def train_local_model(train_loader,global_model_state_dict,epochs,learning_rate,num_classes):
     local_model = MLP()
     local_model.load_state_dict(global_model_state_dict)
@@ -100,5 +192,5 @@ def test_global_model(model, test_loader):
     final_labels = torch.tensor(final_labels)
 
     accuracy = (final_predictions == final_labels).float().mean().item()
-    print('Global Model Accuracy: {:.2f}%'.format(accuracy * 100))
+    #print('Global Model Accuracy: {:.2f}%'.format(accuracy * 100))
     return accuracy

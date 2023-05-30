@@ -17,7 +17,6 @@ import multiprocessing
 import os
 import subprocess
 
-
 def train_1_2(dataloader_client,dataloader_test,num_rounds,num_epochs,lr,mode='default',M=20):
     num_classes = 10
     global_model = MLP()
@@ -41,7 +40,8 @@ def train_1_2(dataloader_client,dataloader_test,num_rounds,num_epochs,lr,mode='d
         # Aggregate local models and update global model
         global_model.load_state_dict(agggregate_local_models(local_model_state_dicts))
         torch.save(global_model.state_dict(), global_model_path)
-        test_global_model(global_model,dataloader_test)
+        acc = test_global_model(global_model,dataloader_test)
+        print("Round ",r+1," Acc = ",acc)
         
 
 
