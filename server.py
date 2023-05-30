@@ -7,9 +7,23 @@ import torchvision
 from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 import argparse
+from loguru import logger
+import os
+import sys
+
+def get_logger(output_file):
+    log_format = "[<green>{time:YYYY-MM-DD HH:mm:ss}</green>] {message}"
+    logger.configure(handlers=[{"sink": sys.stderr, "format": log_format}])
+    while os.path.exists(output_file):
+        output_file = output_file.replace('.log', '1.log')
+    if output_file:
+        logger.add(output_file, enqueue=True, format=log_format)
+    return logger
+
 parser = argparse.ArgumentParser()
 parser.add_argument("num_clients", type=int, help="The number of clients.")
 parser.add_argument("num_rounds", type=int, help="The number of training rounds.")
+parser.add_argument("num_epochs", type=int, help="The number of epochs for each training round.")
 parser.add_argument("send_port", type=int, help="The port which client send the models.")
 parser.add_argument("receive_port", type=int, help="The port which client receive the models.")
 args = parser.parse_args()
@@ -18,6 +32,10 @@ global_model = MLP()
 # 定义客户端数量
 num_clients = args.num_clients
 num_rounds = args.num_rounds
+num_epochs = args.num_epochs
+
+logger = get_logger(f'./result_{num_clients}_{num_rounds}_{num_epochs}.log')
+logger.info(args)
 
 def handle_client(connection):
     try:
@@ -91,7 +109,7 @@ def send_models():
     # 关闭socket
     sock.close()
 
-for _ in range(num_rounds):
+for idx in range(num_rounds):
     # 记录已连接的客户端数量
     connected_clients = 0
 
@@ -111,7 +129,8 @@ for _ in range(num_rounds):
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
     # test the global model
-    test(global_model, test_loader)
+    acc=test(global_model, test_loader)
+    logger.info(f'Round {idx+1} acc: {acc:.4f}')
 
     # Send models
     send_models()

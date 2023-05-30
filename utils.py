@@ -66,4 +66,5 @@ def test(global_model, test_loader):
     all_labels = torch.tensor(all_labels)
 
     accuracy = (all_predictions == all_labels).float().mean().item()
-    print('Global Model Accuracy: {:.2f}%'.format(accuracy * 100))
+    
+    return accuracy
