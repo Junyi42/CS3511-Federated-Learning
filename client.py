@@ -7,7 +7,8 @@ from torchvision import transforms
 import torchvision
 import io
 import time
-def federated_train_and_send(client_id, num_rounds, num_epochs, lr, dataloader, server_ip, server_port):
+
+def federated_train_and_send(client_id, num_rounds, num_epochs, lr, dataloader, server_ip, receive_port, send_port):
     # Initialize the model
     model = MLP()
     print("Client {} initialized the model.".format(client_id+1))
@@ -15,9 +16,7 @@ def federated_train_and_send(client_id, num_rounds, num_epochs, lr, dataloader, 
         # Load the global model parameters
         global_params = None
         if r > 0:
-            # wait for 10 seconds to receive global model parameters, this is to prevent connet to the server before the server is ready
-            time.sleep(10)
-            global_params = receive_global_params(server_ip, server_port)
+            global_params = receive_global_params(server_ip, receive_port)
             model.load_state_dict(global_params)
             print("Client {} received global model parameters.".format(client_id+1))
 
@@ -28,30 +27,43 @@ def federated_train_and_send(client_id, num_rounds, num_epochs, lr, dataloader, 
         train(model, dataloader, num_epochs, lr)
         print("Client {} finished training round {}.".format(client_id+1, r+1))
         # Send the model parameters to the server
-        send_params_to_server(model, server_ip, server_port)
+        send_params_to_server(model, server_ip, send_port)
 
 def send_params_to_server(model, server_ip, server_port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((server_ip, server_port))
-        buffer = io.BytesIO()
-        torch.save(model.state_dict(), buffer)
-        buffer.seek(0)
-        s.sendall(buffer.getvalue())
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    while True:
+        try:
+            s.connect((server_ip, server_port))
+            break
+        except ConnectionRefusedError:
+            print("Connection refused. Retrying...")
+            time.sleep(1)
+    buffer = io.BytesIO()
+    torch.save(model.state_dict(), buffer)
+    buffer.seek(0)
+    s.sendall(buffer.getvalue())
+    s.close()
 
 def receive_global_params(server_ip, server_port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((server_ip, server_port))
-        params_bytes = b''
-        while True:
-            packet = s.recv(4096)
-            if not packet:
-                break
-            params_bytes += packet
-        # 从二进制数据中加载模型参数
-        buffer = io.BytesIO(params_bytes)
-        buffer.seek(0)
-        params = torch.load(buffer)
-        return params
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    while True:
+        try:
+            s.connect((server_ip, server_port))
+            break
+        except ConnectionRefusedError:
+            print("Connection refused. Retrying...")
+            time.sleep(1)
+    params_bytes = b''
+    while True:
+        packet = s.recv(4096)
+        if not packet:
+            break
+        params_bytes += packet
+    buffer = io.BytesIO(params_bytes)
+    buffer.seek(0)
+    params = torch.load(buffer)
+    s.close()
+    return params
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -59,7 +71,8 @@ if __name__ == "__main__":
     parser.add_argument("num_rounds", help="The number of training rounds.")
     parser.add_argument("num_epochs", help="The number of epochs for each training round.")
     parser.add_argument("lr", help="Learning rate for SGD optimizer.")
-    parser.add_argument("server_port", help="The IP address of the server.")
+    parser.add_argument("receive_port", help="The port of the server for receiving global model.")
+    parser.add_argument("send_port", help="The port of the server for sending local model.")
     args = parser.parse_args()
 
     # Load the dataset
@@ -69,6 +82,5 @@ if __name__ == "__main__":
     dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
     server_ip = "localhost"  # Replace with your server IP
-    server_port = int(args.server_port)  # Replace with your server port
 
-    federated_train_and_send(int(args.client_id), int(args.num_rounds), int(args.num_epochs), float(args.lr), dataloader, server_ip, server_port)
+    federated_train_and_send(int(args.client_id), int(args.num_rounds), int(args.num_epochs), float(args.lr), dataloader, server_ip, int(args.receive_port), int(args.send_port))
