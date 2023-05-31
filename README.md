@@ -1,23 +1,34 @@
-文件夹下共20个文件，分别是Client1-20的隐私训练数据。
+# Fedarated Learing
 
-读取方式如下，以读取Client1.pkl为例：
+## Stage 1 and Stage 2: Offline FL
 
-```python
-with open("XXX\\Client1.pkl",'rb') as f:
-    train_dataset_client_1 = dill.load(f)
+Run python file `stage12.py` to train the model and get the result.
+
+```bash
+python stage12.py
 ```
 
-（把XXX改为你的下载路径哦）
-需要提前装好dill（pip install dill）并在开头import dill。
-注意，这个读取出来的是dataset，可以输出其长度，即len(train_dataset_client_1)，另外其中的每一个数据的格式为<一个1*28*28的图片，一个类别标签>。
+## Stage 3: Online FL
 
+Run python file `stage3_main.py` to train the model and get the result.
 
-另外，用于评估global model的测试数据这里没有提供，请自己使用代码下载。
-
-```python
-test_dataset = torchvision.datasets.MNIST(
-        './data', train=False, download=True, transform=transform
-    )
+```bash
+python stage3_main.py --num_clients 10 --num_rounds 10 --num_epochs 10 --lr 0.01 --receive_port 12377 --send_port 12378
 ```
 
-使用上面的代码会把测试数据集下载到代码所在目录中的data文件夹下。
+Hyperparameters are
+
+- `num_clients`: number of clients
+- `num_rounds`: number of rounds
+- `num_epochs`: number of epochs
+- `lr`: learning rate
+- `receive_port`: port for receiving params
+- `send_port`: port for sending params
+
+## Stage 4: Sweep
+
+Just simply run `bash/sweep.sh` to train the model and get the result.
+
+```bash
+bash bash/sweep.sh
+```

@@ -1,0 +1,1 @@
+[2023-05-30 22:16:07] Namespace(num_clients=20, num_rounds=10, num_epochs=10, send_port=12377, receive_port=12378)
