@@ -11,6 +11,7 @@ import os
 import sys
 import utils
 import time
+
 parser = argparse.ArgumentParser()
 parser.add_argument("send_port", type=int, help="Where server sends model.")
 parser.add_argument("receive_port", type=int, help="Where clients receive models.")
@@ -35,5 +36,9 @@ for idx in range(args.num_rounds):
     test_loader = utils.load_test_dataset(batch_size=100)
     acc=utils.test_global_model(global_model, test_loader)
     print("Round ",idx+1,", Acc = ",acc)
+    # Record the result
+    fn = './output/s3/' + str(args.num_rounds)+'_'+ str(args.num_epochs) 
+    with open(fn, 'a') as file:
+        file.write(f"Round {idx+1}, acc: {acc}\n")
 
     

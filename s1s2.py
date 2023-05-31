@@ -22,6 +22,7 @@ def train_1_2(dataloader_client,dataloader_test,num_rounds,num_epochs,lr,mode='d
     global_model = MLP()
     global_model_path = './models/server_model.pth'
     torch.save(global_model.state_dict(), global_model_path)
+    accs = []
     for r in (range(num_rounds)):
         if mode == 'default': # Stage 1: all clients participate in each round of updates
             idx = [i for i in range(len(dataloader_client))]
@@ -41,8 +42,9 @@ def train_1_2(dataloader_client,dataloader_test,num_rounds,num_epochs,lr,mode='d
         global_model.load_state_dict(agggregate_local_models(local_model_state_dicts))
         torch.save(global_model.state_dict(), global_model_path)
         acc = test_global_model(global_model,dataloader_test)
+        accs.append(acc)
         print("Round ",r+1," Acc = ",acc)
-        
+    return accs
 
 
 if __name__ == "__main__":
@@ -53,6 +55,8 @@ if __name__ == "__main__":
     parser.add_argument("-M", type=int, default=20, help="The number of clients selected.")
     parser.add_argument("--b1",type=int,default=32,help="Batch size of clients.")
     parser.add_argument("--b2",type=int,default=100,help="Batch size of test data.")
+    parser.add_argument("--mode",type=str,default='1',help="Select the mode to run:1/2.")
+    
     args = parser.parse_args()
     
     dataloader_client = utils.load_client_dataset(batch_size=args.b1)
@@ -62,13 +66,17 @@ if __name__ == "__main__":
     global_model = MLP()
     global_model_path = './models/server_model.pth'
     global_model.load_state_dict(torch.load(global_model_path))
-
-    print("train on stage 1")
-    train_1_2(dataloader_client,dataloader_test,args.r,args.e,args.lr)
-    acc1 = test_global_model(global_model,dataloader_test)
-
-    print("train on stage 2")
-    train_1_2(dataloader_client,dataloader_test,args.r,args.e,args.lr,mode='stage2',M=args.M) #none-default mode
-    acc2 = test_global_model(global_model,dataloader_test)
-
-    print("acc1:",acc1,"acc2:",acc2)
+    if args.mode=='1':
+        print("Mode : Stage 1")
+        acc = train_1_2(dataloader_client,dataloader_test,args.r,args.e,args.lr)
+    else: #args.mode=='2'
+        print("Mode : Stage 2")
+        acc = train_1_2(dataloader_client,dataloader_test,args.r,args.e,args.lr,mode='stage2', M=args.M) #none-default mode
+    
+    # Record the result
+    fn = './output/s'+args.mode+'/' + str(args.r)+'_'+ str(args.e) +'_'+ str (args.lr) +'_'+ str(args.M)
+    for r in range(args.r):
+        with open(fn, 'a') as file:
+            file.write(f"Round {r+1}, acc: {acc[r]}\n")
+       
+        

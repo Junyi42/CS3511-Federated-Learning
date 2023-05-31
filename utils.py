@@ -11,6 +11,7 @@ import io
 import numpy as np
 import time
 import subprocess
+
 class MLP(nn.Module):
     def __init__(self):
         super(MLP, self).__init__()
@@ -28,9 +29,6 @@ class MLP(nn.Module):
         x = self.relu(x)
         x = self.fc3(x)
         return x
-    
-def start_client(receive_port, send_port, num_rounds, num_epochs,client_id, lr,):
-    subprocess.run(["python", "client.py",str(receive_port), str(send_port),  str(num_rounds), str(num_epochs), str(client_id),str(lr)])
     
 def receive_models(num_clients,receive_port):
     soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -194,3 +192,6 @@ def test_global_model(model, test_loader):
     accuracy = (final_predictions == final_labels).float().mean().item()
     #print('Global Model Accuracy: {:.2f}%'.format(accuracy * 100))
     return accuracy
+
+def start_client(receive_port, send_port, num_rounds, num_epochs,client_id, lr,):
+    subprocess.run(["python", "client.py",str(receive_port), str(send_port),  str(num_rounds), str(num_epochs), str(client_id),str(lr)])

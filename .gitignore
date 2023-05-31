@@ -1,6 +1,7 @@
-# *.pkl
+*.pkl
 *.pptx
 *.pth
+models
 data
 __pycache__
 .DS_Store
